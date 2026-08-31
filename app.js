@@ -2036,8 +2036,7 @@ if (googleLogin) {
             provider: "google",
             options: {
               redirectTo:
-                window.location.origin +
-                window.location.pathname
+                "https://prompts-city.sashaurielhino.workers.dev/"
             }
           });
 
@@ -2107,8 +2106,7 @@ if (githubLogin) {
             provider: "github",
             options: {
               redirectTo:
-                window.location.origin +
-                window.location.pathname
+                "https://prompts-city.sashaurielhino.workers.dev/"
             }
           });
 
