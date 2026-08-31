@@ -1,13 +1,13 @@
 const state = {
-index: null,
-all: [],
-filtered: [],
-category: "all",
-query: "",
-page: 1,
-perPage: 24,
-chunks: new Map(),
-current: null
+  index: null,
+  all: [],
+  filtered: [],
+  category: "all",
+  query: "",
+  page: 1,
+  perPage: 24,
+  chunks: new Map(),
+  current: null
 };
 
 const $ = id => document.getElementById(id);
@@ -16,627 +16,661 @@ const $ = id => document.getElementById(id);
 INITIALISATION
 ========================= */
 
-async function init(){
+async function init() {
+  try {
+    const response = await fetch("./data/index.json");
 
-try{
+    if (!response.ok) {
+      throw new Error("Index HTTP " + response.status);
+    }
 
-const response = await fetch("./data/index.json");
+    state.index = await response.json();
+    state.all = state.index.prompts || [];
 
-if(!response.ok){
-  throw new Error("Index HTTP " + response.status);
-}
+    $("total").textContent =
+      Number(state.index.total || state.all.length).toLocaleString("fr-FR");
 
-state.index = await response.json();
+    /*
+     * L'index possède déjà la catégorie de chaque prompt.
+     * On reconstruit donc les compteurs automatiquement.
+     */
+    const categories = buildCategoryCounts(state.all);
 
-state.all = state.index.prompts || [];
+    $("categories-count").textContent =
+      Object.keys(categories).length;
 
-$("total").textContent =
-  Number(state.index.total || 0).toLocaleString("fr-FR");
+    buildCategories(categories);
 
-const categories = state.index.categories || {};
+    filter();
 
-$("categories-count").textContent =
-  Object.keys(categories).length;
+  } catch (error) {
+    console.error(error);
 
-buildCategories(categories);
-
-filter();
-
-}catch(error){
-
-console.error(error);
-
-$("results").textContent =
-  "Impossible de charger la bibliothèque.";
-
-}
-
+    $("results").textContent =
+      "Impossible de charger la bibliothèque.";
+  }
 }
 
 /* =========================
 CATÉGORIES
 ========================= */
 
-function buildCategories(categories){
+function buildCategoryCounts(prompts) {
+  const counts = {};
 
-const box = $("categories");
+  for (const prompt of prompts) {
+    const category =
+      prompt.category || "Sans catégorie";
 
-box.innerHTML = "";
+    counts[category] =
+      (counts[category] || 0) + 1;
+  }
 
-const all = document.createElement("button");
-
-all.className = "category active";
-all.textContent = "Toutes";
-all.dataset.category = "all";
-
-all.onclick = () => {
-
-state.category = "all";
-
-filter();
-
-};
-
-box.appendChild(all);
-
-for(const [name, count] of Object.entries(categories)){
-
-const button = document.createElement("button");
-
-button.className = "category";
-
-button.dataset.category = name;
-
-button.textContent =
-  `${name} · ${Number(count).toLocaleString("fr-FR")}`;
-
-button.onclick = () => {
-
-  state.category = name;
-
-  filter();
-
-};
-
-box.appendChild(button);
-
+  return Object.fromEntries(
+    Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+  );
 }
 
+function buildCategories(categories) {
+  const box = $("categories");
+
+  box.innerHTML = "";
+
+  const all = document.createElement("button");
+
+  all.className = "category active";
+  all.textContent = "Toutes";
+  all.dataset.category = "all";
+
+  all.onclick = () => {
+    state.category = "all";
+    filter();
+  };
+
+  box.appendChild(all);
+
+  for (const [name, count] of Object.entries(categories)) {
+    const button = document.createElement("button");
+
+    button.className = "category";
+    button.dataset.category = name;
+
+    button.textContent =
+      `${name} · ${Number(count).toLocaleString("fr-FR")}`;
+
+    button.onclick = () => {
+      state.category = name;
+      filter();
+    };
+
+    box.appendChild(button);
+  }
 }
 
 /* =========================
 NORMALISATION
 ========================= */
 
-function normalize(value){
-
-return String(value || "")
-.toLocaleLowerCase("fr-FR")
-.normalize("NFD")
-.replace(/[\u0300-\u036f]/g, "");
-
+function normalize(value) {
+  return String(value || "")
+    .toLocaleLowerCase("fr-FR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 /* =========================
 FILTRAGE
 ========================= */
 
-function filter(){
+function filter() {
+  const query = normalize(state.query);
 
-const query = normalize(state.query);
+  state.filtered = state.all.filter(prompt => {
+    if (
+      state.category !== "all" &&
+      prompt.category !== state.category
+    ) {
+      return false;
+    }
 
-state.filtered = state.all.filter(prompt => {
+    if (!query) {
+      return true;
+    }
 
-if(
-  state.category !== "all" &&
-  prompt.category !== state.category
-){
-  return false;
-}
+    return normalize([
+      prompt.title,
+      prompt.description,
+      prompt.category
+    ].join(" ")).includes(query);
+  });
 
-if(!query){
-  return true;
-}
+  state.page = 1;
 
-return normalize([
-  prompt.title,
-  prompt.description,
-  prompt.category
-].join(" ")).includes(query);
-
-});
-
-state.page = 1;
-
-render();
-
+  render();
 }
 
 /* =========================
 RENDU
 ========================= */
 
-function render(){
+async function render() {
+  document.querySelectorAll(".category").forEach(button => {
+    button.classList.toggle(
+      "active",
+      button.dataset.category === state.category
+    );
+  });
 
-document.querySelectorAll(".category").forEach(button => {
+  const total = state.filtered.length;
 
-button.classList.toggle(
-  "active",
-  button.dataset.category === state.category
-);
+  const pages =
+    Math.max(1, Math.ceil(total / state.perPage));
 
-});
+  const start =
+    (state.page - 1) * state.perPage;
 
-const total = state.filtered.length;
+  const visible =
+    state.filtered.slice(
+      start,
+      start + state.perPage
+    );
 
-const pages =
-Math.max(1, Math.ceil(total / state.perPage));
+  const grid = $("grid");
 
-const start =
-(state.page - 1) * state.perPage;
+  grid.innerHTML = "";
 
-const visible =
-state.filtered.slice(
-start,
-start + state.perPage
-);
+  $("empty").classList.toggle(
+    "hidden",
+    visible.length !== 0
+  );
 
-const grid = $("grid");
+  /*
+   * Les cartes sont affichées immédiatement.
+   * Les images sont ensuite récupérées depuis
+   * les chunks concernés.
+   */
+  for (const prompt of visible) {
+    const card = createCard(prompt);
 
-grid.innerHTML = "";
+    grid.appendChild(card);
 
-$("empty").classList.toggle(
-"hidden",
-visible.length !== 0
-);
+    enrichCard(card, prompt);
+  }
 
-for(const prompt of visible){
+  $("results").textContent =
+    `${total.toLocaleString("fr-FR")} résultat${total > 1 ? "s" : ""}`;
 
-const card =
-  createCard(prompt);
-
-grid.appendChild(card);
-
-}
-
-$("results").textContent =
-"${total.toLocaleString("fr-FR")} résultat${total > 1 ? "s" : ""}";
-
-pagination(pages);
-
+  pagination(pages);
 }
 
 /* =========================
 CARTE
 ========================= */
 
-function createCard(prompt){
+function createCard(prompt) {
+  const card =
+    document.createElement("article");
 
-const card =
-document.createElement("article");
+  card.className = "card";
 
-card.className = "card";
+  /*
+   * L'index peut parfois déjà contenir une image.
+   * On l'utilise immédiatement si disponible.
+   */
+  const media =
+    getMedia(prompt);
 
-const media =
-getMedia(prompt);
+  if (media.length) {
+    addCardImage(card, prompt, media[0]);
+  }
 
-if(media.length){
+  const category =
+    document.createElement("div");
 
-const imageContainer =
-  document.createElement("div");
+  category.className =
+    "card-category";
 
-imageContainer.className =
-  "card-image";
+  category.textContent =
+    prompt.category || "Sans catégorie";
 
+  const title =
+    document.createElement("h3");
 
-const image =
-  document.createElement("img");
+  title.textContent =
+    prompt.title || "Prompt sans titre";
 
-image.src = media[0];
+  const description =
+    document.createElement("p");
 
-image.alt =
-  prompt.title || "Illustration du prompt";
+  description.textContent =
+    prompt.description || "Prompt IA.";
 
-image.loading = "lazy";
+  const footer =
+    document.createElement("div");
 
-image.referrerPolicy = "no-referrer";
+  footer.className =
+    "card-footer";
 
-image.onerror = () => {
+  const view =
+    document.createElement("button");
 
-  imageContainer.remove();
+  view.className =
+    "view";
 
-};
+  view.textContent =
+    "Voir le prompt";
 
+  view.onclick = () =>
+    openPrompt(prompt);
 
-imageContainer.appendChild(image);
+  footer.appendChild(view);
 
-card.appendChild(imageContainer);
+  card.append(
+    category,
+    title,
+    description,
+    footer
+  );
 
+  return card;
 }
 
-const category =
-document.createElement("div");
+/* =========================
+ENRICHISSEMENT DES CARTES
+========================= */
 
-category.className =
-"card-category";
+async function enrichCard(card, prompt) {
+  /*
+   * Si le prompt possède déjà un média,
+   * inutile de télécharger son chunk.
+   */
+  if (getMedia(prompt).length) {
+    return;
+  }
 
-category.textContent =
-prompt.category || "Sans catégorie";
+  if (!prompt.chunk) {
+    return;
+  }
 
-const title =
-document.createElement("h3");
+  try {
+    const data =
+      await getChunk(prompt.chunk);
 
-title.textContent =
-prompt.title || "Prompt sans titre";
+    const current =
+      findPromptInChunk(data, prompt.id);
 
-const description =
-document.createElement("p");
+    if (!current) {
+      return;
+    }
 
-description.textContent =
-prompt.description || "Prompt IA.";
+    const media =
+      getMedia(current);
 
-const footer =
-document.createElement("div");
+    if (!media.length) {
+      return;
+    }
 
-footer.className =
-"card-footer";
+    /*
+     * Évite d'ajouter deux fois l'image
+     * si le rendu a changé entre-temps.
+     */
+    if (
+      card.querySelector(".card-image")
+    ) {
+      return;
+    }
 
-const view =
-document.createElement("button");
+    addCardImage(
+      card,
+      current,
+      media[0]
+    );
 
-view.className =
-"view";
+  } catch (error) {
+    console.error(
+      "Impossible de charger le média :",
+      prompt.id,
+      error
+    );
+  }
+}
 
-view.textContent =
-"Voir le prompt";
+/* =========================
+IMAGE CARTE
+========================= */
 
-view.onclick = () =>
-openPrompt(prompt);
+function addCardImage(card, prompt, url) {
+  const imageContainer =
+    document.createElement("div");
 
-footer.appendChild(view);
+  imageContainer.className =
+    "card-image";
 
-card.append(
-category,
-title,
-description,
-footer
-);
+  const image =
+    document.createElement("img");
 
-return card;
+  image.src = url;
 
+  image.alt =
+    prompt.title ||
+    "Illustration du prompt";
+
+  image.loading =
+    "lazy";
+
+  image.decoding =
+    "async";
+
+  image.referrerPolicy =
+    "no-referrer";
+
+  image.onerror = () => {
+    imageContainer.remove();
+  };
+
+  imageContainer.appendChild(image);
+
+  /*
+   * Insérer l'image au début de la carte.
+   */
+  card.prepend(imageContainer);
 }
 
 /* =========================
 MÉDIAS
 ========================= */
 
-function getMedia(prompt){
+function getMedia(prompt) {
+  if (!prompt) {
+    return [];
+  }
 
-if(!prompt){
-return [];
-}
+  const media =
+    prompt.source_media;
 
-let media =
-prompt.source_media;
+  if (!media) {
+    return [];
+  }
 
-if(!media){
-return [];
-}
+  if (typeof media === "string") {
+    return [media];
+  }
 
-if(typeof media === "string"){
-return [media];
-}
+  if (Array.isArray(media)) {
+    return media.filter(Boolean);
+  }
 
-if(Array.isArray(media)){
-return media.filter(Boolean);
-}
-
-return [];
-
+  return [];
 }
 
 /* =========================
 CHUNKS
 ========================= */
 
-async function getChunk(name){
+async function getChunk(name) {
+  if (state.chunks.has(name)) {
+    return state.chunks.get(name);
+  }
 
-if(state.chunks.has(name)){
-return state.chunks.get(name);
+  const response =
+    await fetch("./data/chunks/" + name);
+
+  if (!response.ok) {
+    throw new Error(
+      "Chunk HTTP " + response.status
+    );
+  }
+
+  const data =
+    await response.json();
+
+  state.chunks.set(name, data);
+
+  return data;
 }
 
-const response =
-await fetch("./data/chunks/" + name);
+/* =========================
+RECHERCHE DANS UN CHUNK
+========================= */
 
-if(!response.ok){
-throw new Error(
-"Chunk HTTP " + response.status
-);
-}
+function findPromptInChunk(data, id) {
+  if (Array.isArray(data)) {
+    return data.find(
+      item => item.id === id
+    );
+  }
 
-const data =
-await response.json();
+  if (
+    data &&
+    Array.isArray(data.prompts)
+  ) {
+    return data.prompts.find(
+      item => item.id === id
+    );
+  }
 
-state.chunks.set(name, data);
+  if (
+    data &&
+    data[id]
+  ) {
+    return data[id];
+  }
 
-return data;
-
+  return null;
 }
 
 /* =========================
 OUVERTURE DU PROMPT
 ========================= */
 
-async function openPrompt(prompt){
+async function openPrompt(prompt) {
+  try {
+    let data = null;
 
-try{
+    if (prompt.chunk) {
+      data =
+        await getChunk(prompt.chunk);
+    }
 
-let data = null;
+    let current =
+      findPromptInChunk(
+        data,
+        prompt.id
+      );
 
-if(prompt.chunk){
-  data =
-    await getChunk(prompt.chunk);
-}
+    if (!current) {
+      current = prompt;
+    }
 
+    state.current =
+      current;
 
-let current = null;
+    $("modal-category").textContent =
+      current.category || "";
 
+    $("modal-title").textContent =
+      current.title ||
+      "Prompt sans titre";
 
-if(Array.isArray(data)){
+    $("modal-description").textContent =
+      current.description || "";
 
-  current =
-    data.find(
-      item => item.id === prompt.id
+    $("modal-content").textContent =
+      current.content ||
+      current.prompt ||
+      "";
+
+    $("modal-meta").textContent =
+      current.source
+        ? `Source : ${current.source}`
+        : "";
+
+    renderModalMedia(current);
+
+    $("modal").classList.remove("hidden");
+
+    document.body.style.overflow =
+      "hidden";
+
+  } catch (error) {
+    console.error(error);
+
+    alert(
+      "Impossible de charger ce prompt."
     );
-
-}else if(
-  data &&
-  Array.isArray(data.prompts)
-){
-
-  current =
-    data.prompts.find(
-      item => item.id === prompt.id
-    );
-
-}else if(
-  data &&
-  data[prompt.id]
-){
-
-  current =
-    data[prompt.id];
-
-}
-
-
-if(!current){
-  current = prompt;
-}
-
-
-state.current = current;
-
-
-$("modal-category").textContent =
-  current.category || "";
-
-
-$("modal-title").textContent =
-  current.title || "Prompt sans titre";
-
-
-$("modal-description").textContent =
-  current.description || "";
-
-
-$("modal-content").textContent =
-  current.content ||
-  current.prompt ||
-  "";
-
-
-$("modal-meta").textContent =
-  current.source
-    ? `Source : ${current.source}`
-    : "";
-
-
-renderModalMedia(current);
-
-
-$("modal").classList.remove("hidden");
-
-document.body.style.overflow = "hidden";
-
-}catch(error){
-
-console.error(error);
-
-alert(
-  "Impossible de charger ce prompt."
-);
-
-}
-
+  }
 }
 
 /* =========================
 IMAGE MODALE
 ========================= */
 
-function renderModalMedia(prompt){
+function renderModalMedia(prompt) {
+  const container =
+    $("modal-image-container");
 
-const container =
-$("modal-image-container");
+  const image =
+    $("modal-image");
 
-const image =
-$("modal-image");
+  const counter =
+    $("modal-image-count");
 
-const counter =
-$("modal-image-count");
+  const media =
+    getMedia(prompt);
 
-const media =
-getMedia(prompt);
+  if (!media.length) {
+    container.classList.add("hidden");
 
-if(!media.length){
+    image.src = "";
 
-container.classList.add("hidden");
+    counter.textContent = "";
 
-image.src = "";
+    return;
+  }
 
-counter.textContent = "";
+  image.src =
+    media[0];
 
-return;
+  image.alt =
+    prompt.title ||
+    "Illustration du prompt";
 
-}
+  image.referrerPolicy =
+    "no-referrer";
 
-image.src = media[0];
+  image.onerror = () => {
+    container.classList.add("hidden");
+  };
 
-image.alt =
-prompt.title ||
-"Illustration du prompt";
+  if (media.length > 1) {
+    counter.textContent =
+      `${media.length} images`;
+  } else {
+    counter.textContent = "";
+  }
 
-image.referrerPolicy =
-"no-referrer";
-
-image.onerror = () => {
-
-container.classList.add("hidden");
-
-};
-
-if(media.length > 1){
-
-counter.textContent =
-  `${media.length} images`;
-
-}else{
-
-counter.textContent = "";
-
-}
-
-container.classList.remove("hidden");
-
+  container.classList.remove("hidden");
 }
 
 /* =========================
 FERMETURE MODALE
 ========================= */
 
-function closeModal(){
+function closeModal() {
+  $("modal").classList.add("hidden");
 
-$("modal").classList.add("hidden");
-
-document.body.style.overflow = "";
-
+  document.body.style.overflow = "";
 }
 
 /* =========================
 PAGINATION
 ========================= */
 
-function pagination(pages){
+function pagination(pages) {
+  const box =
+    $("pagination");
 
-const box =
-$("pagination");
+  box.innerHTML = "";
 
-box.innerHTML = "";
+  if (pages <= 1) {
+    return;
+  }
 
-if(pages <= 1){
-return;
-}
+  function button(
+    text,
+    page,
+    active = false
+  ) {
+    const button =
+      document.createElement("button");
 
-function button(
-text,
-page,
-active = false
-){
+    button.className =
+      "page" +
+      (active ? " active" : "");
 
-const button =
-  document.createElement("button");
+    button.textContent =
+      text;
 
-button.className =
-  "page" +
-  (active ? " active" : "");
+    button.onclick = () => {
+      state.page = page;
 
-button.textContent =
-  text;
+      render();
 
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    };
 
-button.onclick = () => {
+    box.appendChild(button);
+  }
 
-  state.page = page;
+  if (state.page > 1) {
+    button(
+      "‹",
+      state.page - 1
+    );
+  }
 
-  render();
+  let start =
+    Math.max(
+      1,
+      state.page - 3
+    );
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+  let end =
+    Math.min(
+      pages,
+      start + 6
+    );
 
-};
+  if (end - start < 6) {
+    start =
+      Math.max(
+        1,
+        end - 6
+      );
+  }
 
+  for (
+    let page = start;
+    page <= end;
+    page++
+  ) {
+    button(
+      page,
+      page,
+      page === state.page
+    );
+  }
 
-box.appendChild(button);
-
-}
-
-if(state.page > 1){
-
-button(
-  "‹",
-  state.page - 1
-);
-
-}
-
-let start =
-Math.max(
-1,
-state.page - 3
-);
-
-let end =
-Math.min(
-pages,
-start + 6
-);
-
-if(end - start < 6){
-
-start =
-  Math.max(
-    1,
-    end - 6
-  );
-
-}
-
-for(
-let page = start;
-page <= end;
-page++
-){
-
-button(
-  page,
-  page,
-  page === state.page
-);
-
-}
-
-if(state.page < pages){
-
-button(
-  "›",
-  state.page + 1
-);
-
-}
-
+  if (state.page < pages) {
+    button(
+      "›",
+      state.page + 1
+    );
+  }
 }
 
 /* =========================
@@ -644,15 +678,13 @@ RECHERCHE
 ========================= */
 
 $("search").addEventListener(
-"input",
-event => {
+  "input",
+  event => {
+    state.query =
+      event.target.value;
 
-state.query =
-  event.target.value;
-
-filter();
-
-}
+    filter();
+  }
 );
 
 /* =========================
@@ -660,21 +692,19 @@ RANDOM
 ========================= */
 
 $("random").onclick = () => {
+  if (!state.all.length) {
+    return;
+  }
 
-if(!state.all.length){
-return;
-}
+  const prompt =
+    state.all[
+      Math.floor(
+        Math.random() *
+        state.all.length
+      )
+    ];
 
-const prompt =
-state.all[
-Math.floor(
-Math.random() *
-state.all.length
-)
-];
-
-openPrompt(prompt);
-
+  openPrompt(prompt);
 };
 
 /* =========================
@@ -682,85 +712,68 @@ MODALE
 ========================= */
 
 $("close").onclick =
-closeModal;
+  closeModal;
 
 $("backdrop").onclick =
-closeModal;
+  closeModal;
 
 /* =========================
 COPIE
 ========================= */
 
 $("copy").onclick =
-async () => {
+  async () => {
+    if (!state.current) {
+      return;
+    }
 
-if(!state.current){
-  return;
-}
+    const content =
+      state.current.content ||
+      state.current.prompt ||
+      "";
 
+    try {
+      await navigator.clipboard.writeText(
+        content
+      );
 
-const content =
-  state.current.content ||
-  state.current.prompt ||
-  "";
-
-
-try{
-
-  await navigator.clipboard.writeText(
-    content
-  );
-
-
-  $("toast").classList.add(
-    "show"
-  );
-
-
-  setTimeout(
-    () =>
-      $("toast").classList.remove(
+      $("toast").classList.add(
         "show"
-      ),
-    1600
-  );
+      );
 
+      setTimeout(
+        () =>
+          $("toast").classList.remove(
+            "show"
+          ),
+        1600
+      );
 
-}catch(error){
-
-  console.error(error);
-
-}
-
-};
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
 /* =========================
 RACCOURCIS CLAVIER
 ========================= */
 
 document.addEventListener(
-"keydown",
-event => {
+  "keydown",
+  event => {
+    if (
+      event.key === "/" &&
+      document.activeElement.tagName !== "INPUT"
+    ) {
+      event.preventDefault();
 
-if(
-  event.key === "/" &&
-  document.activeElement.tagName !== "INPUT"
-){
+      $("search").focus();
+    }
 
-  event.preventDefault();
-
-  $("search").focus();
-
-}
-
-
-if(event.key === "Escape"){
-
-  closeModal();
-
-}
-
-}
+    if (event.key === "Escape") {
+      closeModal();
+    }
+  }
 );
 
 /* =========================
