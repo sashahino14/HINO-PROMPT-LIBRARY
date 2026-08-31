@@ -1,107 +1,512 @@
-<!DOCTYPE html><html lang="fr">
+<!DOCTYPE html>
+<html lang="fr">
+
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff">
-<meta name="description" content="The Prompts City — bibliothèque de prompts IA."><title>The Prompts City — Bibliothèque de prompts IA</title><!-- Favicon SVG --><link
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1"
+>
+
+<meta
+  name="theme-color"
+  content="#ffffff"
+>
+
+<meta
+  name="description"
+  content="The Prompts City — bibliothèque de prompts IA."
+>
+
+<title>The Prompts City — Bibliothèque de prompts IA</title>
+
+<link
   rel="icon"
   type="image/svg+xml"
   href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23111111'/%3E%3Cpath d='M28 72V28h25c12 0 19 7 19 17s-7 17-19 17H40v10H28zm12-21h12c5 0 8-2 8-6s-3-6-8-6H40v12z' fill='white'/%3E%3C/svg%3E"
-><link rel="stylesheet" href="style.css">
-</head><body><header>  <a class="logo" href="./" aria-label="The Prompts City"><span class="logo-mark" aria-hidden="true">
-  <svg viewBox="0 0 100 100" role="img">
-    <rect width="100" height="100" rx="22"></rect>
-    <path d="M28 72V28h25c12 0 19 7 19 17s-7 17-19 17H40v10H28zm12-21h12c5 0 8-2 8-6s-3-6-8-6H40v12z"></path>
-  </svg>
+>
+
+<link
+  rel="stylesheet"
+  href="style.css"
+>
+
+<style>
+
+/* =========================
+AUTHENTIFICATION
+========================= */
+
+.auth-button {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 17px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-button:hover {
+  opacity: .88;
+}
+
+.auth-user {
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-user-email {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.logout-button {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #111;
+  border-radius: 999px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.auth-modal.hidden {
+  display: none;
+}
+
+.auth-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+}
+
+.auth-card {
+  position: relative;
+  width: min(430px, 100%);
+  background: #fff;
+  border-radius: 24px;
+  padding: 30px;
+  box-shadow: 0 25px 80px rgba(0,0,0,.18);
+}
+
+.auth-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.auth-card h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.auth-subtitle {
+  margin: 0 0 24px;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.auth-social {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #111;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.auth-social:hover {
+  background: #f7f7f7;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: #999;
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e5e5;
+}
+
+.auth-field {
+  margin-bottom: 14px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.auth-field input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 11px;
+  padding: 12px 13px;
+  font: inherit;
+  outline: none;
+}
+
+.auth-field input:focus {
+  border-color: #111;
+}
+
+.auth-submit {
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+.auth-submit:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.auth-switch {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+}
+
+.auth-switch button {
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.auth-error {
+  display: none;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff0f0;
+  color: #b00020;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.auth-success {
+  display: none;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #effaf2;
+  color: #16743a;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+
+  .auth-user-email {
+    display: none;
+  }
+
+  .auth-button {
+    padding: 9px 13px;
+  }
+
+  .auth-card {
+    padding: 25px 20px;
+    border-radius: 20px;
+  }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<a
+  class="logo"
+  href="./"
+  aria-label="The Prompts City"
+>
+
+<span
+  class="logo-mark"
+  aria-hidden="true"
+>
+
+<svg
+  viewBox="0 0 100 100"
+  role="img"
+>
+
+<rect
+  width="100"
+  height="100"
+  rx="22"
+></rect>
+
+<path
+  d="M28 72V28h25c12 0 19 7 19 17s-7 17-19 17H40v10H28zm12-21h12c5 0 8-2 8-6s-3-6-8-6H40v12z"
+></path>
+
+</svg>
+
 </span>
 
 <span class="logo-text">
-  <strong>The Prompts City</strong>
-  <small>AI Prompt Library</small>
+
+<strong>The Prompts City</strong>
+
+<small>AI Prompt Library</small>
+
 </span>
 
-  </a>  <button id="random" class="random-button">
-    Surprise me
-  </button></header><main><section class="hero">  <div class="hero-inner"><div class="eyebrow">
-  BIBLIOTHÈQUE DE PROMPTS IA
+</a>
+
+<div style="display:flex;align-items:center;gap:10px;">
+
+<button
+  id="random"
+  class="random-button"
+>
+  Surprise me
+</button>
+
+<button
+  id="auth-button"
+  class="auth-button"
+>
+  Connexion
+</button>
+
+<div
+  id="auth-user"
+  class="auth-user"
+>
+
+<span
+  id="auth-user-email"
+  class="auth-user-email"
+></span>
+
+<button
+  id="logout-button"
+  class="logout-button"
+>
+  Déconnexion
+</button>
+
+</div>
+
+</div>
+
+</header>
+
+
+<main>
+
+<section class="hero">
+
+<div class="hero-inner">
+
+<div class="eyebrow">
+BIBLIOTHÈQUE DE PROMPTS IA
 </div>
 
 <h1>
-  Explorez<br>
-  <em>The Prompts City.</em>
+Explorez<br>
+<em>The Prompts City.</em>
 </h1>
 
 <p>
-  Une immense bibliothèque de prompts IA soigneusement
-  collectés, organisés et prêts à être utilisés.
+Une immense bibliothèque de prompts IA soigneusement
+collectés, organisés et prêts à être utilisés.
 </p>
 
 <div class="search">
 
-  <span aria-hidden="true">⌕</span>
+<span aria-hidden="true">⌕</span>
 
-  <input
-    id="search"
-    type="search"
-    placeholder="Rechercher un prompt..."
-    autocomplete="off"
-    aria-label="Rechercher un prompt"
-  >
+<input
+  id="search"
+  type="search"
+  placeholder="Rechercher un prompt..."
+  autocomplete="off"
+  aria-label="Rechercher un prompt"
+>
 
-  <kbd>/</kbd>
+<kbd>/</kbd>
 
 </div>
 
 <div class="stats">
 
-  <div>
-    <b id="total">—</b>
-    <small>prompts</small>
-  </div>
+<div>
 
-  <div>
-    <b id="categories-count">—</b>
-    <small>catégories</small>
-  </div>
+<b id="total">—</b>
+
+<small>
+prompts
+</small>
 
 </div>
 
-  </div></section><section class="library">  <div class="toolbar"><div id="categories" class="categories"></div>
+<div>
 
-<small id="results">
-  Chargement...
+<b id="categories-count">—</b>
+
+<small>
+catégories
 </small>
 
-  </div>  <div id="grid" class="grid"></div>  <div id="empty" class="empty hidden"><div class="empty-icon">⌕</div>
+</div>
 
-<h2>Aucun prompt trouvé</h2>
+</div>
+
+</div>
+
+</section>
+
+
+<section class="library">
+
+<div class="toolbar">
+
+<div
+  id="categories"
+  class="categories"
+></div>
+
+<small id="results">
+Chargement...
+</small>
+
+</div>
+
+<div
+  id="grid"
+  class="grid"
+></div>
+
+<div
+  id="empty"
+  class="empty hidden"
+>
+
+<div class="empty-icon">
+⌕
+</div>
+
+<h2>
+Aucun prompt trouvé
+</h2>
 
 <p>
-  Essayez une autre recherche ou sélectionnez une autre catégorie.
+Essayez une autre recherche ou sélectionnez une autre catégorie.
 </p>
 
-  </div>  <div id="pagination" class="pagination"></div></section></main><!-- MODALE PROMPT --><div id="modal" class="modal hidden">  <div id="backdrop" class="backdrop"></div>  <article class="modal-card"><button
+</div>
+
+<div
+  id="pagination"
+  class="pagination"
+></div>
+
+</section>
+
+</main>
+
+
+<!-- MODALE PROMPT -->
+
+<div
+  id="modal"
+  class="modal hidden"
+>
+
+<div
+  id="backdrop"
+  class="backdrop"
+></div>
+
+<article class="modal-card">
+
+<button
   id="close"
   class="close"
   aria-label="Fermer"
 >
-  ×
+×
 </button>
 
+<div
+  id="modal-image-container"
+  class="modal-image-container hidden"
+>
 
-<div id="modal-image-container" class="modal-image-container hidden">
-  <img
-    id="modal-image"
-    src=""
-    alt=""
-    loading="lazy"
-  >
+<img
+  id="modal-image"
+  src=""
+  alt=""
+  loading="lazy"
+>
 
-  <div
-    id="modal-image-count"
-    class="modal-image-count"
-  ></div>
+<div
+  id="modal-image-count"
+  class="modal-image-count"
+></div>
+
 </div>
-
 
 <small id="modal-category"></small>
 
@@ -109,27 +514,165 @@
 
 <p id="modal-description"></p>
 
-
 <div class="prompt">
 
-  <div class="prompt-head">
+<div class="prompt-head">
 
-    <span>Prompt</span>
+<span>
+Prompt
+</span>
 
-    <button id="copy">
-      Copier le prompt
-    </button>
+<button id="copy">
+Copier le prompt
+</button>
 
-  </div>
+</div>
 
-  <pre id="modal-content"></pre>
+<pre id="modal-content"></pre>
+
+</div>
+
+<footer id="modal-meta"></footer>
+
+</article>
 
 </div>
 
 
-<footer id="modal-meta"></footer>
+<!-- AUTHENTIFICATION -->
 
-  </article></div><div id="toast">
-  Prompt copié
-</div><script src="app.js"></script></body>
+<div
+  id="auth-modal"
+  class="auth-modal hidden"
+>
+
+<div
+  id="auth-backdrop"
+  class="auth-backdrop"
+></div>
+
+<article class="auth-card">
+
+<button
+  id="auth-close"
+  class="auth-close"
+  aria-label="Fermer"
+>
+×
+</button>
+
+<h2 id="auth-title">
+Connexion
+</h2>
+
+<p class="auth-subtitle">
+Connectez-vous à The Prompts City pour retrouver votre compte.
+</p>
+
+<button
+  id="google-login"
+  class="auth-social"
+>
+  Continuer avec Google
+</button>
+
+<button
+  id="github-login"
+  class="auth-social"
+>
+  Continuer avec GitHub
+</button>
+
+<div class="auth-divider">
+ou
+</div>
+
+<div
+  id="auth-error"
+  class="auth-error"
+></div>
+
+<div
+  id="auth-success"
+  class="auth-success"
+></div>
+
+<form id="auth-form">
+
+<div class="auth-field">
+
+<label for="auth-email">
+Adresse e-mail
+</label>
+
+<input
+  id="auth-email"
+  type="email"
+  autocomplete="email"
+  required
+>
+
+</div>
+
+<div class="auth-field">
+
+<label for="auth-password">
+Mot de passe
+</label>
+
+<input
+  id="auth-password"
+  type="password"
+  minlength="6"
+  autocomplete="current-password"
+  required
+>
+
+</div>
+
+<button
+  id="auth-submit"
+  class="auth-submit"
+  type="submit"
+>
+Se connecter
+</button>
+
+</form>
+
+<div class="auth-switch">
+
+<span id="auth-switch-text">
+Vous n'avez pas encore de compte ?
+</span>
+
+<button
+  id="auth-switch"
+  type="button"
+>
+Créer un compte
+</button>
+
+</div>
+
+</article>
+
+</div>
+
+
+<div id="toast">
+Prompt copié
+</div>
+
+
+<!-- SUPABASE -->
+
+<script
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
+
+<script src="app.js"></script>
+
+</body>
+
 </html>
