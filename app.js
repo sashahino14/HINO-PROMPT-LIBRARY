@@ -124,6 +124,108 @@ async function init() {
 CATÉGORIES
 ========================================================= */
 
+const VIDEO_TERMS = [
+  "video",
+  "vidéo",
+  "text-to-video",
+  "image-to-video",
+  "text to video",
+  "image to video",
+  "cinematic video",
+  "video generation",
+  "génération vidéo",
+  "video prompt",
+  "prompt vidéo",
+  "animation video",
+  "ai video",
+  "vidéo ia"
+];
+
+const VIDEO_MODELS = [
+  ["kling", "Kling"],
+  ["wan", "Wan"],
+  ["vidu", "Vidu"],
+  ["veo", "Veo"],
+  ["runway", "Runway"],
+  ["hailuo", "Hailuo"],
+  ["pika", "Pika"],
+  ["seedance", "Seedance"],
+  ["sora", "Sora"],
+  ["luma", "Luma"],
+  ["dream machine", "Luma Dream Machine"],
+  ["minimax", "MiniMax"]
+];
+
+
+function getPromptSearchText(prompt) {
+
+  return normalize(
+    [
+      prompt.title,
+      prompt.description,
+      prompt.category,
+      prompt.content,
+      prompt.prompt,
+      prompt.source,
+      prompt.model,
+      prompt.tool
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
+}
+
+
+function isVideoPrompt(prompt) {
+
+  const text =
+    getPromptSearchText(prompt);
+
+  return VIDEO_TERMS.some(
+    term =>
+      text.includes(
+        normalize(term)
+      )
+  ) || VIDEO_MODELS.some(
+    ([term]) =>
+      text.includes(
+        normalize(term)
+      )
+  );
+
+}
+
+
+function getVideoModels(prompt) {
+
+  const text =
+    getPromptSearchText(prompt);
+
+  return VIDEO_MODELS
+    .filter(
+      ([term]) =>
+        text.includes(
+          normalize(term)
+        )
+    )
+    .map(
+      ([, name]) =>
+        name
+    );
+
+}
+
+
+function getVideoPromptCount(prompts) {
+
+  return prompts.filter(
+    isVideoPrompt
+  ).length;
+
+}
+
+
 function buildCategoryCounts(prompts) {
 
   const counts = {};
@@ -189,6 +291,49 @@ function buildCategories(categories) {
 
   box.appendChild(
     all
+  );
+
+
+  /* =========================
+     FILTRE VIDÉO
+     ========================= */
+
+  const videoCount =
+    getVideoPromptCount(
+      state.all
+    );
+
+
+  const videoButton =
+    document.createElement(
+      "button"
+    );
+
+
+  videoButton.className =
+    "category";
+
+
+  videoButton.dataset.category =
+    "__video__";
+
+
+  videoButton.textContent =
+    `Vidéo · ${videoCount.toLocaleString("fr-FR")}`;
+
+
+  videoButton.onclick = () => {
+
+    state.category =
+      "__video__";
+
+    filter();
+
+  };
+
+
+  box.appendChild(
+    videoButton
   );
 
 
@@ -266,6 +411,16 @@ function filter() {
       prompt => {
 
         if (
+          state.category === "__video__"
+        ) {
+
+          if (!isVideoPrompt(prompt)) {
+
+            return false;
+
+          }
+
+        } else if (
           state.category !== "all" &&
           prompt.category !==
             state.category
@@ -283,12 +438,8 @@ function filter() {
         }
 
 
-        return normalize(
-          [
-            prompt.title,
-            prompt.description,
-            prompt.category
-          ].join(" ")
+        return getPromptSearchText(
+          prompt
         ).includes(
           query
         );
@@ -458,6 +609,108 @@ function createCard(prompt) {
 
   category.className =
     "card-category";
+
+
+  /* =========================
+     BADGE VIDÉO
+     ========================= */
+
+  if (isVideoPrompt(prompt)) {
+
+    const videoBadge =
+      document.createElement(
+        "span"
+      );
+
+
+    videoBadge.textContent =
+      "VIDÉO";
+
+
+    videoBadge.style.display =
+      "inline-block";
+
+
+    videoBadge.style.marginLeft =
+      "8px";
+
+
+    videoBadge.style.padding =
+      "3px 8px";
+
+
+    videoBadge.style.borderRadius =
+      "999px";
+
+
+    videoBadge.style.background =
+      "#111";
+
+
+    videoBadge.style.color =
+      "#fff";
+
+
+    videoBadge.style.fontSize =
+      "10px";
+
+
+    videoBadge.style.fontWeight =
+      "700";
+
+
+    videoBadge.style.letterSpacing =
+      ".04em";
+
+
+    category.appendChild(
+      videoBadge
+    );
+
+
+    const videoModels =
+      getVideoModels(
+        prompt
+      );
+
+
+    if (videoModels.length) {
+
+      const model =
+        document.createElement(
+          "span"
+        );
+
+
+      model.textContent =
+        videoModels.join(
+          " · "
+        );
+
+
+      model.style.marginLeft =
+        "7px";
+
+
+      model.style.fontSize =
+        "11px";
+
+
+      model.style.fontWeight =
+        "600";
+
+
+      model.style.opacity =
+        ".65";
+
+
+      category.appendChild(
+        model
+      );
+
+    }
+
+  }
 
 
   category.textContent =
@@ -1698,7 +1951,27 @@ function updateAuthMode() {
 MISE À JOUR DE L'INTERFACE UTILISATEUR
 ========================================================= */
 
+
+function updateLandingAccess(user) {
+
+  if (user) {
+
+    if (typeof window.hideLandingPage === "function") {
+      window.hideLandingPage();
+    }
+
+    return;
+  }
+
+  if (typeof window.showLandingPage === "function") {
+    window.showLandingPage();
+  }
+
+}
+
 function updateAuthUI(user) {
+
+  updateLandingAccess(user);
 
   if (
     !authButton ||
