@@ -265,6 +265,66 @@ AUTHENTIFICATION
 
 }
 
+
+/* =========================================================
+   AUTH GATE — CONTENU RÉSERVÉ AUX UTILISATEURS CONNECTÉS
+   ========================================================= */
+
+body.auth-locked main {
+  display: none;
+}
+
+.auth-gate {
+  display: none;
+  min-height: calc(100vh - 90px);
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+body.auth-locked .auth-gate {
+  display: flex;
+}
+
+.auth-gate-card {
+  width: min(520px, 100%);
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 24px;
+  padding: 42px 30px;
+  box-sizing: border-box;
+  box-shadow: 0 20px 60px rgba(0,0,0,.08);
+}
+
+.auth-gate-card h1 {
+  margin: 0 0 12px;
+  font-size: clamp(28px, 6vw, 42px);
+}
+
+.auth-gate-card p {
+  margin: 0 auto 26px;
+  max-width: 430px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.auth-gate-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 22px;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-gate-button:hover {
+  opacity: .88;
+}
+
 </style>
 
 </head>
@@ -352,6 +412,30 @@ AUTHENTIFICATION
 
 </header>
 
+
+
+<section id="auth-gate" class="auth-gate">
+
+  <div class="auth-gate-card">
+
+    <h1>Bienvenue dans The Prompts City.</h1>
+
+    <p>
+      Connectez-vous pour accéder à la bibliothèque de prompts IA
+      et utiliser toutes les fonctionnalités de la plateforme.
+    </p>
+
+    <button
+      id="auth-gate-button"
+      class="auth-gate-button"
+      type="button"
+    >
+      Se connecter
+    </button>
+
+  </div>
+
+</section>
 
 <main>
 

@@ -2286,3 +2286,97 @@ DÉMARRAGE APPLICATION
 
 init();
 
+
+/* =========================================================
+AUTH GATE — ACCÈS OBLIGATOIRE À LA BIBLIOTHÈQUE
+========================================================= */
+
+function setAuthGate(user) {
+
+  const isAuthenticated = Boolean(user);
+
+  document.body.classList.toggle(
+    "auth-locked",
+    !isAuthenticated
+  );
+
+  const gateButton =
+    document.getElementById("auth-gate-button");
+
+  if (gateButton) {
+
+    gateButton.onclick = () => {
+
+      openAuthModal("login");
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+INITIALISATION DU GATE
+========================================================= */
+
+async function initAuthGate() {
+
+  if (!supabaseClient) {
+
+    setAuthGate(null);
+
+    return;
+
+  }
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.getSession();
+
+    if (error) {
+
+      throw error;
+
+    }
+
+    const user =
+      data?.session?.user || null;
+
+    setAuthGate(user);
+
+  } catch (error) {
+
+    console.error(
+      "Impossible de vérifier l'authentification :",
+      error
+    );
+
+    setAuthGate(null);
+
+  }
+
+
+  supabaseClient.auth.onAuthStateChange(
+    (_event, session) => {
+
+      setAuthGate(
+        session?.user || null
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+DÉMARRAGE DU GATE
+========================================================= */
+
+initAuthGate();
+
