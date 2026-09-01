@@ -355,7 +355,7 @@ function buildCategories(categories) {
 
 
     button.textContent =
-      `${name} · ${Number(count).toLocaleString("fr-FR")}`;
+      `${getCategoryLabel(name)} · ${Number(count).toLocaleString("fr-FR")}`;
 
 
     button.onclick = () => {
@@ -393,6 +393,38 @@ function normalize(value) {
 
 }
 
+
+
+/* =========================================================
+TRADUCTION DES MÉTADONNÉES — FRANÇAIS
+Les prompts eux-mêmes restent dans leur langue originale.
+========================================================= */
+
+const CATEGORY_LABELS_FR = {
+  "Product Marketing": "Marketing produit",
+  "Social Media": "Réseaux sociaux",
+  "Profile / Avatar": "Profil / Avatar",
+  "Others": "Autres",
+  "Poster / Flyer": "Affiche / Flyer",
+  "Comic / Storyboard": "BD / Storyboard",
+  "E-commerce": "E-commerce",
+  "Game Asset": "Ressources de jeu",
+  "Infographic / Educational": "Infographie / Éducation",
+  "App / Web Design": "Design d'applications / Web",
+  "YouTube Thumbnail": "Miniature YouTube"
+};
+
+function getCategoryLabel(category) {
+
+  if (!category) {
+    return "Sans catégorie";
+  }
+
+  return (
+    CATEGORY_LABELS_FR[category] ||
+    category
+  );
+}
 
 /* =========================================================
 FILTRAGE
@@ -714,8 +746,7 @@ function createCard(prompt) {
 
 
   category.textContent =
-    prompt.category ||
-    "Sans catégorie";
+    getCategoryLabel(prompt.category);
 
 
   const title =
